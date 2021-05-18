@@ -13,12 +13,6 @@ from openapi_client.model.font import Font
 
 metaRecordPath = 'meta_record.json'
 
-configuration = openapi_client.Configuration(
-        host='http://172.17.0.2'
-)
-
-font_user = 'apiuser'
-
 
 def getFontDirs():
     """Returns a list of directories in which fonts may exist"""
@@ -85,13 +79,13 @@ def getPrepMeta(meta, user, path):
     return Font(user_name=user, font_path=path, **newMeta)
 
 
-def reportChanges():
+def reportChanges(user_name, config):
     """Check for changes in all font metadata and report accordingly"""
 
     oldMeta = readMetaRecord()
     newMeta = getCurrentMeta()
 
-    with openapi_client.ApiClient(configuration) as apiClient:
+    with openapi_client.ApiClient(config) as apiClient:
 
         apiInstance = default_api.DefaultApi(apiClient)
 
@@ -108,7 +102,7 @@ def reportChanges():
                 print(f"File '{addedPath}' has been added!")
 
                 cMeta = newMeta[addedPath]
-                font = getPrepMeta(cMeta, font_user, addedPath)
+                font = getPrepMeta(cMeta, user_name, addedPath)
 
                 try:
                     apiResponse = apiInstance.create_font_font_post(font)
@@ -120,7 +114,7 @@ def reportChanges():
                 print(f"File '{removedPath}' has been removed!")
 
                 cMeta = newMeta[removedPath]
-                font = getPrepMeta(cMeta, font_user, removedPath)
+                font = getPrepMeta(cMeta, user_name, removedPath)
                 
                 try:
                     apiResponse = apiInstance.remove_font_font_delete(font)
@@ -132,7 +126,7 @@ def reportChanges():
                     print(f"File '{samePath}' has been modified!")
 
                     cMeta = newMeta[samePath]
-                    font = getPrepMeta(cMeta, font_user, samePath)
+                    font = getPrepMeta(cMeta, user_name, samePath)
 
                     try:
                         apiResponse = apiInstance.update_font_font_put(font)
@@ -142,7 +136,7 @@ def reportChanges():
             updateMetaRecord(newMeta)
 
 
-def reportAll():
+def reportAll(user_name, config):
     """Report full account of all font metadata"""
 
     print("Reporting all!")
@@ -153,9 +147,9 @@ def reportAll():
 
     res = []
     for path, cMeta in cMetas.items():
-        res.append(getPrepMeta(cMeta, font_user, path))
+        res.append(getPrepMeta(cMeta, user_name, path))
 
-    with openapi_client.ApiClient(configuration) as apiClient:
+    with openapi_client.ApiClient(config) as apiClient:
         
         apiInstance = default_api.DefaultApi(apiClient)
         
@@ -166,14 +160,28 @@ def reportAll():
 
 
     updateMetaRecord(cMetas)
-    
+
+
+def do_setup():
+
+    user_name = input("User: ")
+    host = input("Host: ")
+
+    config = openapi_client.Configuration(
+        host=host
+    )
+
+    return user_name, config
+
 
 def main():
+
+    user_name, config = do_setup()
     
     print(getFontDirs())
 
-    schedule.every(5).seconds.do(reportChanges)
-    schedule.every(30).seconds.do(reportAll)
+    schedule.every(5).seconds.do(reportChanges, user_name, config)
+    schedule.every(30).seconds.do(reportAll, user_name, config)
 
     while True:
         schedule.run_pending()
