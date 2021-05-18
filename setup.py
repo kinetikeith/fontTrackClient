@@ -19,7 +19,7 @@ setup(
     author_email = "khman32@protonmail.com",
     description = "Prototype font tracking client",
     install_requires=getDependencies(),
-    packages=find_packages("./"), 
+    packages=find_packages("."), 
     scripts=['main.py'],
     console=['main.py']
     )
